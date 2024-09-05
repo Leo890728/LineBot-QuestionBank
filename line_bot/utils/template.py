@@ -726,7 +726,7 @@ class Template:
             return result
 
         question_index_tag = "第{0}/{1}題".format(
-            question_index, len(question.subject.questions))
+            question_index+1, len(question.subject.questions))
 
         bubble = FlexBubble(
             size="giga",
@@ -824,11 +824,11 @@ class Template:
                                                 contents=[
                                                     FlexFiller(),
                                                     FlexText(
-                                                        text=f"第{prev_question_index}題",
+                                                        text=f"第{prev_question_index+1}題",
                                                         color="#ffffff",
                                                         flex=0,
                                                         action=PostbackAction(
-                                                            text=f"上一題 -> 第{prev_question_index}題",
+                                                            text=f"上一題 -> 第{prev_question_index+1}題",
                                                             data=postback.configure(
                                                                 question_index=prev_question_index
                                                             )
@@ -880,11 +880,11 @@ class Template:
                                                 contents=[
                                                     FlexFiller(),
                                                     FlexText(
-                                                        text=f"第{next_question_index}題",
+                                                        text=f"第{next_question_index+1}題",
                                                         color="#ffffff",
                                                         flex=0,
                                                         action=PostbackAction(
-                                                            text=f"下一題 -> 第{next_question_index}題",
+                                                            text=f"下一題 -> 第{next_question_index+1}題",
                                                             data=postback.configure(
                                                                 question_index=next_question_index
                                                             )
