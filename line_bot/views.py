@@ -44,16 +44,16 @@ logger = logging.getLogger('line_bot')
 @csrf_exempt 
 def callback(request):
     if request.method == 'POST':
-        # get X-Line-Signature header value
-        signature = request.headers['X-Line-Signature']
-
-        # get request body as text
-        body = request.body.decode('utf-8')
-
-        # handle webhook body
         try:
+            # get X-Line-Signature header value
+            signature = request.headers['X-Line-Signature']
+
+            # get request body as text
+            body = request.body.decode('utf-8')
+
+            # handle webhook body
             handler.handle(body, signature)
-        except InvalidSignatureError:
+        except (InvalidSignatureError, KeyError):
             return http.HttpResponseBadRequest("Invalid signature. Please check your channel access token/channel secret.")
 
         return http.HttpResponse("OK")
