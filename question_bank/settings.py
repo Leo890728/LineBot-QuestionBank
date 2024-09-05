@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure--o%i!#)iv76kns5t5d#tglm!5(ff9houm=!18zf0k!kg)0y#cv
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['ibex-grateful-hookworm.ngrok-free.app']
+ALLOWED_HOSTS = ['ibex-grateful-hookworm.ngrok-free.app', "linebot-iq9n.onrender.com"]
 
 
 # Application definition
