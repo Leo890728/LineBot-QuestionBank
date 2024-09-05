@@ -371,7 +371,7 @@ class Template:
             reply_answer = postback.reply_answer
 
             if postback.mode == QuestionPostback.QuestionModeType.TEST:
-                action_text = f"第{postback.question_index + 1}題 -> 選擇 {ascii_uppercase[option_index]}"
+                action_text = f"第{postback.question_index + 1}題 ➜ 選擇 {ascii_uppercase[option_index]}"
 
                 if option.option_id in answers_id:
                     reply_answer += "*"
@@ -382,10 +382,10 @@ class Template:
 
             elif postback.mode == QuestionPostback.QuestionModeType.REVISE:
                 if option.option_id in answers_id:
-                    action_text = f"第{postback.question_index + 1}題 -> {ascii_uppercase[option_index]} 正確"
+                    action_text = f"第{postback.question_index + 1}題 ➜ {ascii_uppercase[option_index]} 正確"
                     postback_data = postback.configure(question_index=postback.question_index+1)
                 else:
-                    action_text = f"第{postback.question_index + 1}題 -> {ascii_uppercase[option_index]} 錯誤"
+                    action_text = f"第{postback.question_index + 1}題 ➜ {ascii_uppercase[option_index]} 錯誤"
                     postback_data = " "
 
             return PostbackAction(text=action_text, data=postback_data) 
@@ -828,7 +828,7 @@ class Template:
                                                         color="#ffffff",
                                                         flex=0,
                                                         action=PostbackAction(
-                                                            text=f"上一題 -> 第{prev_question_index+1}題",
+                                                            text=f"上一題 ➜ 第{prev_question_index+1}題",
                                                             data=postback.configure(
                                                                 question_index=prev_question_index
                                                             )
@@ -884,7 +884,7 @@ class Template:
                                                         color="#ffffff",
                                                         flex=0,
                                                         action=PostbackAction(
-                                                            text=f"下一題 -> 第{next_question_index+1}題",
+                                                            text=f"下一題 ➜ 第{next_question_index+1}題",
                                                             data=postback.configure(
                                                                 question_index=next_question_index
                                                             )
