@@ -2,6 +2,7 @@ import random
 import re
 import math
 import os
+import time
 import traceback
 import hashlib
 
@@ -19,6 +20,7 @@ from question_bank.exception import CategoryNotFoundError, SubjectNotFoundError
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, subqueryload
+from sqlalchemy.exc import OperationalError
 
 
 # 資料庫連接字串
@@ -27,8 +29,19 @@ DATABASE_URL = os.environ.get("connectString")
 # 建立引擎
 engine = create_engine(DATABASE_URL)
 
-# 建立模型
-Base.metadata.create_all(engine)
+retries = 5
+while retries >= 0:
+    try:
+        # 建立模型
+        Base.metadata.create_all(engine)
+        break
+    except OperationalError as e:
+        if retries == 0:
+            raise e
+        print(f"連線失敗，重試中... ({retries} 次剩餘)")
+        retries -= 1
+        time.sleep(5)
+
 
 # 建立連線階段
 Session = sessionmaker(bind=engine)
