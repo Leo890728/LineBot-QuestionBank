@@ -97,7 +97,7 @@ def handle_postback_message(event):
             )
 
         except (CategoryNotFoundError, SubjectNotFoundError) as e:
-            logging.exception("Failed to build Line flex message template due to missing category or subject: %s", e)
+            logger.exception("Failed to build Line flex message template due to missing category or subject: %s", e)
             reply_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
@@ -107,7 +107,7 @@ def handle_postback_message(event):
             )
 
         except pydantic.ValidationError as e:
-            logging.exception("Error building Line flex message template: %s", e)
+            logger.exception("Error building Line flex message template: %s", e)
             reply_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
@@ -117,7 +117,7 @@ def handle_postback_message(event):
             )
 
         except Exception as ex:
-            logging.exception("Handling Line Postback Event Error: %s", ex)
+            logger.exception("Handling Line Postback Event Error: %s", ex)
             reply_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
@@ -142,7 +142,7 @@ def handle_message(event):
                 messages = [TemplateBuilder.select_category()]
 
             except pydantic.ValidationError as e:
-                logging.exception("Error building Line flex message template: %s", e)
+                logger.exception("Error building Line flex message template: %s", e)
                 messages=[
                     TextMessage(text='訊息建構錯誤'),
                     StickerMessage(package_id='11537', sticker_id='52002749')
