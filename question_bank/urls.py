@@ -20,7 +20,28 @@ from django.urls import path
 import line_bot
 import line_bot.views
 
+import question_bank.views
+
+
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    path("line-bot/", line_bot.views.callback)
+    path("admin/", admin.site.urls, name='admin'),
+
+    path("line-bot/", line_bot.views.callback, name='line_bot_callback'),
+
+    path("category/", question_bank.views.category, name='category_list'),
+    path("category/<int:category_id>/", question_bank.views.category, name='category_detail'),
+
+    path("category/<int:category_id>/subject/", question_bank.views.subject, name='subject_list'),
+    path("category/<int:category_id>/subject/<int:subject_id>/", question_bank.views.subject, name='subject_detail'),
+
+    path("category/<int:category_id>/subject/<int:subject_id>/question/", question_bank.views.question, name='question_list'),
+    path("category/<int:category_id>/subject/<int:subject_id>/question/<int:question_id>/", question_bank.views.question, name='question_detail'),
+
+    path("category/<int:category_id>/subject/<int:subject_id>/question/<int:question_id>/option/", question_bank.views.option, name='option_list'),
+    path("category/<int:category_id>/subject/<int:subject_id>/question/<int:question_id>/option/<int:option_id>/", question_bank.views.option, name='option_detail'),
+
+    path("category/<int:category_id>/subject/<int:subject_id>/question/<int:question_id>/answer/", question_bank.views.answer, name='answer_list'),
+
+    path("category/<int:category_id>/subject/<int:subject_id>/question/<int:question_id>/variable/", question_bank.views.variable, name='variable_list'),
+
 ]
