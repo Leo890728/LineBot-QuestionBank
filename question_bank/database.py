@@ -2,7 +2,6 @@ import random
 import re
 import math
 import os
-import time
 import traceback
 import hashlib
 
@@ -11,19 +10,23 @@ from typing import List, Union, overload, Optional, Type
 from copy import deepcopy
 
 from question_bank.models import (
-    Base,
     Category,
     Subject,
-    Question
+    Question,
+    QuestionOption,
+    QuestionAnswer,
+    QuestionVariable
 )
 
-from question_bank.exception import CategoryNotFoundError, SubjectNotFoundError
+from question_bank.exception import CategoryNotFoundError, SubjectNotFoundError, QuestionNotFoundError, OptionNotFoundError
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, subqueryload
+from sqlmodel import SQLModel, create_engine, select, Session as SQLModelSession
+from sqlalchemy import ScalarResult, Select
+from sqlalchemy.orm import subqueryload
 from sqlalchemy.exc import OperationalError
 from tenacity import retry, wait_fixed, retry_if_exception_type, stop_after_attempt, TryAgain, wait_exponential
 
+__all__ = ["QuestionBank", "QuestionRandomizer"]
 
 # 資料庫連接字串
 DATABASE_URL = os.environ.get("connectString")
@@ -60,35 +63,115 @@ class QuestionBank:
             raise TryAgain
         else:
             return result
+
+    @overload
+    def get_category(self) -> List[Category]:
+        ...
+
+    @overload
+    def get_category(self, *, category_id: int) -> Category:
+        ...
+
+    def get_category(self, *, category_id: int=None) -> Union[List[Category], Category]:
+        statement = select(Category) if category_id is None else select(Category).filter_by(category_id=category_id)
+        categorys = self._execute(statement).all()
+        if category_id is not None:
+            if not categorys:
+                raise CategoryNotFoundError()
+            return categorys[0]
         else:
-            raise CategoryNotFoundError()
+            return categorys
     
-    @staticmethod
-    def get_subjects(*, category_id) -> List[Subject]:
-        result = Session().query(Subject).filter_by(category_id=category_id).all()
-        return result
+    @overload
+    def get_subject(self, *, category_id: int) -> List[Subject]:
+        ...
+        
+    @overload
+    def get_subject(self, *, category_id: int, subject_id: int) -> Subject:
+        ...
     
-    @staticmethod
-    def get_subject(*, category_id, subject_id) -> Subject:
-        result = Session().query(Subject).filter_by(category_id=category_id, subject_id=subject_id).first()
-        if result:
-            return result
+    def get_subject(self, *, category_id: int, subject_id: int=None) -> Union[List[Subject], Subject]:
+        if subject_id is None:
+            statement = select(Subject).filter_by(category_id=category_id)
+            result = self._execute(statement).all()
         else:
+            statement = select(Subject).filter_by(category_id=category_id, subject_id=subject_id)
+            result = self._execute(statement).first()
+
+        if result is None:
             raise SubjectNotFoundError()
+        else:
+            return result
+        
+    @overload
+    def get_questions(self, *, category_id: int, subject_id: int) -> List[Question]:
+        ...
     
-    @staticmethod
-    def get_questions(*, category_id, subject_id) -> List[Question]:
-        result = (Session().query(Question)
-                  .options(
-                      subqueryload(Question.category),
-                      subqueryload(Question.subject).subqueryload(Subject.questions),
-                      subqueryload(Question.options),
-                      subqueryload(Question.answer),
-                      subqueryload(Question.variables)
-                    )
-                  .filter_by(category_id=category_id)
-                  .filter_by(subject_id=subject_id)).all()
+    @overload
+    def get_questions(self, *, category_id: int, subject_id: int, question_id: int) -> Question:
+        ...
+        
+    def get_questions(self, *, category_id: int, subject_id: int, question_id: int=None) -> Union[List[Question], Question]:
+        statement = (
+            select(Question).options(
+                subqueryload(Question.category),
+                subqueryload(Question.subject).subqueryload(Subject.questions),
+                subqueryload(Question.options),
+                subqueryload(Question.answer),
+                subqueryload(Question.variables)
+            )
+            .filter_by(category_id=category_id)
+            .filter_by(subject_id=subject_id))
+        
+        if question_id is not None:
+            statement = statement.filter_by(question_id=question_id)
+            result = self._execute(statement).first()
+        else:
+            result = self._execute(statement).all()
+                    
         return result
+    
+    @overload
+    def get_option(self, *, category_id: int, subject_id: int, question_id: int) -> List[QuestionOption]:
+        ...
+    
+    @overload
+    def get_option(self, *, category_id: int, subject_id: int, question_id: int, option_id: int) -> QuestionOption:
+        ...
+    
+    def get_option(self, *, category_id: int, subject_id: int, question_id: int, option_id: int=None) -> Union[List[QuestionOption], QuestionOption]:
+        statement = (select(Question)
+                     .where(Question.category_id==category_id, Question.subject_id==subject_id, Question.question_id==question_id))
+        question = self._execute(statement).first()
+
+        if question is None:
+            raise QuestionNotFoundError()
+        
+        if option_id is not None:
+            option = next((opt for opt in question.options if opt.option_id == option_id), None)
+            if option is None:
+                raise OptionNotFoundError()
+            return option
+        else:
+            return question.options
+
+    def get_answer(self, *, category_id: int, subject_id: int, question_id: int) -> List[QuestionAnswer]:
+        statement = (select(Question)
+                     .where(Question.category_id==category_id, Question.subject_id==subject_id, Question.question_id==question_id))
+        question = self._execute(statement).first()
+        if question is None:
+            raise QuestionNotFoundError()
+        else:
+            return question.answer
+        
+    def get_variable(self, *, category_id: int, subject_id: int, question_id: int) -> List[QuestionVariable]:
+        statement = (select(Question)
+                     .where(Question.category_id==category_id, Question.subject_id==subject_id, Question.question_id==question_id))
+        question = self._execute(statement).first()
+        if question is None:
+            raise QuestionNotFoundError()
+        else:
+            return question.variables
     
 
 class QuestionRandomizer:
