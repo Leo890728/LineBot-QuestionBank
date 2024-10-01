@@ -1,104 +1,76 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
+from sqlmodel import SQLModel, Field, Relationship
+from typing import List, Optional
 
 
-# 建立基類
-Base = declarative_base()
+class Category(SQLModel, table=True):
+    category_id: int = Field(default=None, primary_key=True, nullable=False, sa_column_kwargs={'name': 'CategoryID'})
+    name: str = Field(max_length=16, nullable=False, sa_column_kwargs={'name': 'Name'})
+    background_image: str | None = Field(default=None, max_length=256, sa_column_kwargs={'name': 'BackgroundImage'})
 
-# 定義 ORM 模型
-class Category(Base):
-    __tablename__ = 'Category'
-    category_id = Column("CategoryID", Integer, primary_key=True, autoincrement=True, nullable=False)
-    name = Column("Name", String(16), nullable=False)
-    background_image = Column("BackgroundImage", String(256), nullable=True)
-
-    subjects = relationship("Subject", back_populates="category")
-    questions = relationship("Question", back_populates="category")
+    subjects: List["Subject"] = Relationship(back_populates="category")
+    questions: List["Question"] = Relationship(back_populates="category")
 
     def __repr__(self):
-        return "<Category(CategoryID={category_id}, Name={name})>".format(
-            category_id=self.category_id,
-            name=self.name
-        )
+        return f"<Category(CategoryID={self.category_id}, Name={self.name})>"
 
-class Subject(Base):
-    __tablename__ = 'Subject'
-    subject_id = Column("SubjectID", Integer, primary_key=True, autoincrement=True, nullable=False)
-    category_id = Column("CategoryID", ForeignKey("Category.CategoryID"), nullable=False)
-    name = Column("Name", String(16), nullable=False)
-    description = Column("Description", String(32), nullable=False)
-    background_image = Column("BackgroundImage", String(256), nullable=True)
 
-    category = relationship("Category", back_populates="subjects")
-    questions = relationship("Question", back_populates="subject")
+class Subject(SQLModel, table=True):
+    subject_id: int = Field(default=None, primary_key=True, nullable=False, sa_column_kwargs={'name': 'SubjectID'})
+    category_id: int = Field(foreign_key="category.CategoryID", nullable=False, sa_column_kwargs={'name': 'CategoryID'})
+    name: str = Field(max_length=16, nullable=False, sa_column_kwargs={'name': 'Name'})
+    description: str = Field(max_length=32, nullable=False, sa_column_kwargs={'name': 'Description'})
+    background_image: Optional[str] = Field(default=None, max_length=256, sa_column_kwargs={'name': 'BackgroundImage'})
+
+    category: "Category" = Relationship(back_populates="subjects")
+    questions: List["Question"] = Relationship(back_populates="subject")
 
     def __repr__(self):
-        return "<Subject(CategoryID={category_id}, SubjectID={subject_id}, Name={name})>".format(
-            category_id=self.category_id,
-            subject_id=self.subject_id,
-            name=self.name
-        )
+        return f"<Subject(CategoryID={self.category_id}, SubjectID={self.subject_id}, Name={self.name})>"
 
-class Question(Base):
-    __tablename__ = "Question"
-    question_id = Column("QuestionID", Integer, primary_key=True, autoincrement=True, nullable=False)
-    category_id = Column("CategoryID", ForeignKey("Category.CategoryID"), nullable=False)
-    subject_id = Column("SubjectID", ForeignKey("Subject.SubjectID"), nullable=False)
-    content = Column("Content", String(256), nullable=False)
 
-    category = relationship("Category", back_populates="questions")
-    subject = relationship("Subject", back_populates="questions")
-    options = relationship("QuestionOption", back_populates="question")
-    answer = relationship("QuestionAnswer", back_populates="question")
-    variables= relationship("QuestionVariable", back_populates="question")
+class Question(SQLModel, table=True):
+    question_id: int = Field(default=None, primary_key=True, nullable=False, sa_column_kwargs={'name': 'QuestionID'})
+    category_id: int = Field(foreign_key="category.CategoryID", nullable=False, sa_column_kwargs={'name': 'CategoryID'})
+    subject_id: int = Field(foreign_key="subject.SubjectID", nullable=False, sa_column_kwargs={'name': 'SubjectID'})
+    content: str = Field(max_length=256, nullable=False, sa_column_kwargs={'name': 'Content'})
+
+    category: "Category" = Relationship(back_populates="questions")
+    subject: "Subject" = Relationship(back_populates="questions")
+    options: List["QuestionOption"] = Relationship(back_populates="question")
+    answer: List["QuestionAnswer"] = Relationship(back_populates="question")
+    variables: List["QuestionVariable"] = Relationship(back_populates="question")
 
     def __repr__(self):
-        return "<Question(CategoryID={category_id}, SubjectID={subject_id}, QuestionID={question_id}, Content={content})>".format(
-            category_id=self.category_id,
-            subject_id=self.subject_id,
-            question_id=self.question_id,
-            content=self.content[:10]
-        )
+        return f"<Question(CategoryID={self.category_id}, SubjectID={self.subject_id}, QuestionID={self.question_id}, Content={self.content[:10]})>"
 
-class QuestionOption(Base):
-    __tablename__ = "QuestionOption"
-    option_id = Column("OptionID", Integer, primary_key=True, nullable=False)
-    question_id = Column("QuestionID", ForeignKey("Question.QuestionID"), primary_key=True, nullable=False)
-    content = Column("Content", String(256), nullable=False)
 
-    question = relationship("Question", back_populates="options")
+class QuestionOption(SQLModel, table=True):
+    option_id: int = Field(default=None, primary_key=True, sa_column_kwargs={'name': 'OptionID'})
+    question_id: int = Field(foreign_key="question.QuestionID", primary_key=True, nullable=False, sa_column_kwargs={'name': 'QuestionID'})
+    content: str = Field(max_length=256, nullable=False, sa_column_kwargs={'name': 'Content'})
+
+    question: "Question" = Relationship(back_populates="options")
 
     def __repr__(self):
-        return "<QuestionOption(QuestionID={question_id}, OptionID={option_id}, Content={content})>".format(
-            question_id=self.question_id,
-            option_id=self.option_id,
-            content=self.content
-        )
+        return f"<QuestionOption(QuestionID={self.question_id}, OptionID={self.option_id}, Content={self.content})>"
 
-class QuestionAnswer(Base):
-    __tablename__ = "QuestionAnswer"
-    question_id = Column("QuestionID", ForeignKey("Question.QuestionID"), primary_key=True, nullable=False)
-    option_id = Column("OptionID", ForeignKey("QuestionOption.OptionID"), primary_key=True, nullable=False)
 
-    question = relationship("Question", back_populates="answer")
+class QuestionAnswer(SQLModel, table=True):
+    question_id: int = Field(foreign_key="question.QuestionID", primary_key=True, nullable=False, sa_column_kwargs={'name': 'QuestionID'})
+    option_id: int = Field(foreign_key="QuestionOption.OptionID", primary_key=True, nullable=False, sa_column_kwargs={'name': 'OptionID'})
+
+    question: "Question" = Relationship(back_populates="answer")
 
     def __repr__(self):
-        return "<QuestionAnswer(QuestionID={question_id}, OptionID={option_id})>".format(
-            question_id=self.question_id,
-            option_id=self.option_id
-        )
+        return f"<QuestionAnswer(QuestionID={self.question_id}, OptionID={self.option_id})>"
 
-class QuestionVariable(Base):
-    __tablename__ = "QuestionVariable"
-    question_id = Column("QuestionID", ForeignKey("Question.QuestionID"), primary_key=True, nullable=False)
-    variable_name = Column("VariableName", String(16), primary_key=True, nullable=False)
-    variable_value = Column("VariableValue", String(64), nullable=False)
 
-    question = relationship("Question", back_populates="variables")
+class QuestionVariable(SQLModel, table=True):
+    question_id: int = Field(foreign_key="question.QuestionID", primary_key=True, nullable=False, sa_column_kwargs={'name': 'QuestionID'})
+    variable_name: str = Field(max_length=16, primary_key=True, nullable=False, sa_column_kwargs={'name': 'VariableName'})
+    variable_value: str = Field(max_length=64, nullable=False, sa_column_kwargs={'name': 'VariableValue'})
+
+    question: "Question" = Relationship(back_populates="variables")
 
     def __repr__(self):
-        return "<QuestionVariable(QuestionID={question_id}, VariableName={variable_name}, VariableValue={variable_value})>".format(
-            question_id=self.question_id,
-            variable_name=self.variable_name,
-            variable_value=self.variable_value
-        )
+        return f"<QuestionVariable(QuestionID={self.question_id}, VariableName={self.variable_name}, VariableValue={self.variable_value})>"
