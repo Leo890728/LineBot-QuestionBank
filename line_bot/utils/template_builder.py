@@ -13,9 +13,9 @@ class TemplateBuilder:
     @staticmethod
     def select_category() -> FlexMessage:
         category_bubbles = []
-
-        for category in QuestionBank.get_categorys():
-            category_bubbles.append(Template.category_bubble(category))
+        with QuestionBank() as question_bank:
+            for category in question_bank.get_category():
+                category_bubbles.append(Template.category_bubble(category))
 
         flex_message = FlexMessage(
             alt_text='題庫 | 選擇類科', 
@@ -27,8 +27,9 @@ class TemplateBuilder:
     def select_subject(postback: QuestionPostback) -> FlexMessage:
         subject_bubbles = []
 
-        for subject in QuestionBank.get_subjects(category_id=postback.category_id):
-            subject_bubbles.append(Template.subject_bubble(subject, postback))
+        with QuestionBank() as question_bank:
+            for subject in question_bank.get_subject(category_id=postback.category_id):
+                subject_bubbles.append(Template.subject_bubble(subject, postback))
         
         flex_message = FlexMessage(
             alt_text='題庫 | 選擇科目', 
@@ -38,8 +39,9 @@ class TemplateBuilder:
     
     @staticmethod
     def select_mode(postback: QuestionPostback) -> FlexMessage:
-        subject = QuestionBank.get_subject(category_id=postback.category_id, subject_id=postback.subject_id)
-        bubble = Template.mode_bubble(subject, postback)
+        with QuestionBank() as question_bank:
+            subject = question_bank.get_subject(category_id=postback.category_id, subject_id=postback.subject_id)
+            bubble = Template.mode_bubble(subject, postback)
 
         flex_message = FlexMessage(
             alt_text='題庫 | 選擇科目', 
@@ -49,34 +51,36 @@ class TemplateBuilder:
 
     @staticmethod
     def question(postback: QuestionPostback) -> FlexMessage:
+        with QuestionBank() as question_bank:
+            questions = question_bank.get_questions(category_id=postback.category_id, subject_id=postback.subject_id)
+            questions.sort(key=lambda q: q.question_id)
 
-        questions = QuestionBank.get_questions(category_id=postback.category_id, subject_id=postback.subject_id)
-        questions.sort(key=lambda q: q.question_id)
+            if postback.question_index >= len(questions):
+                return TemplateBuilder.question_result(postback)
 
-        if postback.question_index >= len(questions):
-            return TemplateBuilder.question_result(postback)
+            # shuffle questions
+            random.Random(postback.question_seed).shuffle(questions)
 
-        # shuffle questions
-        random.Random(postback.question_seed).shuffle(questions)
+            randomizer = QuestionRandomizer(questions[postback.question_index], postback.question_seed)
+            randomizer.process_variables()
 
-        randomizer = QuestionRandomizer(questions[postback.question_index], postback.question_seed)
-        randomizer.process_variables()
+            question = randomizer.question
 
-        question = randomizer.question
+            bubble = Template.question_bubble(question, postback)
 
-        bubble = Template.question_bubble(question, postback)
-
-        flex_message = FlexMessage(
-            alt_text='題庫 | 題目 {} / {}'.format(len(question.subject.questions), postback.question_index+1), 
-            contents=FlexCarousel(contents=[bubble])
-        )
+            flex_message = FlexMessage(
+                alt_text='題庫 | 題目 {} / {}'.format(len(question.subject.questions), postback.question_index+1), 
+                contents=FlexCarousel(contents=[bubble])
+            )
         return flex_message
     
     @staticmethod
     def question_result(postback: QuestionPostback) -> FlexMessage:
-        subject = QuestionBank.get_subject(category_id=postback.category_id, subject_id=postback.subject_id)
+        with QuestionBank() as question_bank:
 
-        bubble = Template.result_bubble(subject, postback)
+            subject = question_bank.get_subject(category_id=postback.category_id, subject_id=postback.subject_id)
+
+            bubble = Template.result_bubble(subject, postback)
 
         flex_message = FlexMessage(
             alt_text='題庫 | 結果 ', 
@@ -86,24 +90,25 @@ class TemplateBuilder:
     
     @staticmethod
     def question_review(postback: QuestionPostback) -> FlexMessage:
-        incorrect_answers_index = [i for i, ans in enumerate(postback.reply_answer) if ans != "*"]
+        with QuestionBank() as question_bank:
+            incorrect_answers_index = [i for i, ans in enumerate(postback.reply_answer) if ans != "*"]
 
-        questions = QuestionBank.get_questions(category_id=postback.category_id, subject_id=postback.subject_id)
-        questions.sort(key=lambda q: q.question_id)
+            questions = question_bank.get_questions(category_id=postback.category_id, subject_id=postback.subject_id)
+            questions.sort(key=lambda q: q.question_id)
 
-        # shuffle questions
-        random.Random(postback.question_seed).shuffle(questions)
-        question_index = incorrect_answers_index[0] if postback.question_index == 0 else postback.question_index
+            # shuffle questions
+            random.Random(postback.question_seed).shuffle(questions)
+            question_index = incorrect_answers_index[0] if postback.question_index == 0 else postback.question_index
 
-        next_question_index = incorrect_answers_index[(incorrect_answers_index.index(question_index) + 1) % len(incorrect_answers_index)]
-        prev_question_index = incorrect_answers_index[(incorrect_answers_index.index(question_index) - 1) % len(incorrect_answers_index)]
+            next_question_index = incorrect_answers_index[(incorrect_answers_index.index(question_index) + 1) % len(incorrect_answers_index)]
+            prev_question_index = incorrect_answers_index[(incorrect_answers_index.index(question_index) - 1) % len(incorrect_answers_index)]
 
-        randomizer = QuestionRandomizer(questions[question_index], postback.question_seed)
-        randomizer.process_variables()
+            randomizer = QuestionRandomizer(questions[question_index], postback.question_seed)
+            randomizer.process_variables()
 
-        question = randomizer.question
+            question = randomizer.question
 
-        bubble = Template.review_bubble(question, question_index, next_question_index, prev_question_index, postback)
+            bubble = Template.review_bubble(question, question_index, next_question_index, prev_question_index, postback)
 
         flex_message = FlexMessage(
             alt_text='題庫 | 查看錯誤 ', 
