@@ -4,3 +4,5 @@ Django==5.1
 pydantic==2.8.2
 sqlalchemy==2.0.32
 pymssql==2.3.0
+sqlmodel==0.0.22
+tenacity==9.0.0
