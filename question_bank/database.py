@@ -6,7 +6,8 @@ import time
 import traceback
 import hashlib
 
-from typing import List
+from types import TracebackType
+from typing import List, Union, overload, Optional, Type
 from copy import deepcopy
 
 from question_bank.models import (
@@ -49,10 +50,24 @@ Session = sessionmaker(bind=engine)
 
 class QuestionBank:
 
-    @staticmethod
-    def get_categorys() -> List[Category]:
-        result = Session().query(Category).all()
-        if result:
+    def __enter__(self):
+        self.session = SQLModelSession(engine)
+        return self
+
+    def __exit__(self, exc_type: Optional[Type[BaseException]], exc_value: Optional[BaseException], traceback: Optional[TracebackType]) -> bool:
+        self.session.close()
+
+        if exc_type or exc_value or traceback:
+            return False
+    
+    @retry(reraise=True, wait=wait_exponential(multiplier=1, max=60), stop=stop_after_attempt(5))
+    def _execute(self, statement: Select) -> ScalarResult:
+        try:
+            result = self.session.exec(statement)
+        except OperationalError:
+            self.session.rollback()
+            raise TryAgain
+        else:
             return result
         else:
             raise CategoryNotFoundError()
