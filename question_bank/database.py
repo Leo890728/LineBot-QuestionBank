@@ -22,6 +22,7 @@ from question_bank.exception import CategoryNotFoundError, SubjectNotFoundError
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, subqueryload
 from sqlalchemy.exc import OperationalError
+from tenacity import retry, wait_fixed, retry_if_exception_type, stop_after_attempt, TryAgain, wait_exponential
 
 
 # 資料庫連接字串
@@ -30,22 +31,12 @@ DATABASE_URL = os.environ.get("connectString")
 # 建立引擎
 engine = create_engine(DATABASE_URL)
 
-retries = 5
-while retries >= 0:
-    try:
-        # 建立模型
-        Base.metadata.create_all(engine)
-        break
-    except OperationalError as e:
-        if retries == 0:
-            raise e
-        print(f"連線失敗，重試中... ({retries} 次剩餘)")
-        retries -= 1
-        time.sleep(5)
+@retry(reraise=True, retry=retry_if_exception_type(OperationalError), wait=wait_fixed(5), stop=stop_after_attempt(5))
+def connect_database():
+    # 建立模型
+    SQLModel.metadata.create_all(engine)
 
-
-# 建立連線階段
-Session = sessionmaker(bind=engine)
+connect_database()
 
 
 class QuestionBank:
