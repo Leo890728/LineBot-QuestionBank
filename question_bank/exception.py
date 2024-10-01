@@ -8,3 +8,11 @@ class CategoryNotFoundError(QuestionBankException):
 
 class SubjectNotFoundError(QuestionBankException):
     pass
+
+
+class QuestionNotFoundError(QuestionBankException):
+    pass
+
+
+class OptionNotFoundError(QuestionBankException):
+    pass
