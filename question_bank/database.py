@@ -25,11 +25,14 @@ from sqlalchemy import ScalarResult, Select
 from sqlalchemy.orm import subqueryload
 from sqlalchemy.exc import OperationalError
 from tenacity import retry, wait_fixed, retry_if_exception_type, stop_after_attempt, TryAgain, wait_exponential
+from dotenv import load_dotenv
 
 __all__ = ["QuestionBank", "QuestionRandomizer"]
 
+load_dotenv()
+
 # 資料庫連接字串
-DATABASE_URL = os.environ.get("connectString")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 # 建立引擎
 engine = create_engine(DATABASE_URL)
