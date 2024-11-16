@@ -35,8 +35,8 @@ from linebot.v3.webhooks import (
 )
 
 
-configuration = Configuration(access_token=os.environ.get("channel_access_token"))
-handler = WebhookHandler(os.environ.get("secret"))
+configuration = Configuration(access_token=os.getenv("LINE_MESSAGE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.getenv("LINE_MESSAGE_CHANNEL_SECRET"))
 
 logger = logging.getLogger('line_bot')
 

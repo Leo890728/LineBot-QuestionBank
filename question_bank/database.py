@@ -32,7 +32,7 @@ __all__ = ["QuestionBank", "QuestionRandomizer"]
 load_dotenv()
 
 # 資料庫連接字串
-DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL = os.environ.get("SQL_CONNECT_STRING")
 
 # 建立引擎
 engine = create_engine(DATABASE_URL)
