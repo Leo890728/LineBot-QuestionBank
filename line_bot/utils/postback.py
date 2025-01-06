@@ -1,6 +1,7 @@
 import itertools
 
 from enum import Enum
+from functools import reduce
 from dataclasses import dataclass
 from typing import Any, Callable, Union
 
@@ -22,32 +23,48 @@ class QuestionPostback:
 
 
     class ReplyAnswer:
-        chr_range  = range(int("4E00", 16), int("9FFF", 16))  # 20,992 character
-        encode_map = {"".join(k): chr(v) for k, v in zip(itertools.product(*["ABCDE*-"]*5), chr_range)}
-        decode_map = {chr(k): "".join(v) for k, v in zip(chr_range, itertools.product(*["ABCDE*-"]*5))}
+        # chr_range  = range(int("4E00", 16), int("9FFF", 16))  # 20,992 character
+        # encode_map = {"".join(k): chr(v) for k, v in zip(itertools.product("ABCDE*-", repeat=5), chr_range)}
+        # decode_map = {chr(k): "".join(v) for k, v in zip(chr_range, itertools.product("ABCDE*-", repeat=5))}
+
+        # @staticmethod
+        # def encode(string: str) -> str:
+        #     result = ""
+        #     for i in range(0, len(string), 5):
+        #         s = string[i: 5+i]
+        #         if len(s) < 5:
+        #             s += "-" * ((5 - len(string)) % 5)
+        #         try:
+        #             result += QuestionPostback.ReplyAnswer.encode_map[s]
+        #         except KeyError:
+        #             raise ValueError(f"Invalid segment: {s}")
+        #     return result
+
+        # @staticmethod
+        # def decode(string: str) -> str:
+        #     result = ""
+        #     for s in string:
+        #         try:
+        #             result += QuestionPostback.ReplyAnswer.decode_map[s]
+        #         except KeyError:
+        #             raise ValueError(f"Invalid character: {s}")
+        #     return result.replace("-", "")
 
         @staticmethod
         def encode(string: str) -> str:
-            result = ""
-            for i in range(0, len(string), 5):
-                s = string[i: 5+i]
-                if len(s) < 5:
-                    s += "-" * ((5 - len(string)) % 5)
-                try:
-                    result += QuestionPostback.ReplyAnswer.encode_map[s]
-                except KeyError:
-                    raise ValueError(f"Invalid segment: {s}")
-            return result
+            result = []
+            string = reduce(lambda s, kv: s.replace(*kv), dict(zip("ABCD*", "12345")).items(), string)
+            for s in range(0, len(string), 4):
+                result.append(chr(int(string[s:s+4].ljust(4, "0"), 16)))
+            return "".join(result)
 
         @staticmethod
         def decode(string: str) -> str:
-            result = ""
+            result = []
             for s in string:
-                try:
-                    result += QuestionPostback.ReplyAnswer.decode_map[s]
-                except KeyError:
-                    raise ValueError(f"Invalid character: {s}")
-            return result.replace("-", "")
+                result.append(hex(ord(s)).removeprefix("0x").replace("0", ""))
+            result = reduce(lambda s, kv: s.replace(*kv), dict(zip("12345", "ABCD*")).items(), "".join(result).upper())
+            return result
         
         @staticmethod
         def count_correct_answers(string: str, decode: bool = False) -> int:

@@ -95,10 +95,13 @@ def handle_postback_message(event):
                 reply_token=event.reply_token,
                 messages=message if isinstance(message, list) else [message]
             )
+            error_message = None
+
+            line_bot_api.reply_message(reply_message)
 
         except (CategoryNotFoundError, SubjectNotFoundError) as e:
             logger.exception("Failed to build Line flex message template due to missing category or subject: %s", e)
-            reply_message = ReplyMessageRequest(
+            error_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
                     TextMessage(text='類科或科目遭到變更或移除'), 
@@ -108,7 +111,7 @@ def handle_postback_message(event):
 
         except pydantic.ValidationError as e:
             logger.exception("Error building Line flex message template: %s", e)
-            reply_message = ReplyMessageRequest(
+            error_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
                     TextMessage(text='訊息建構錯誤'),
@@ -116,9 +119,9 @@ def handle_postback_message(event):
                 ]
             )
 
-        except Exception as ex:
-            logger.exception("Handling Line Postback Event Error: %s", ex)
-            reply_message = ReplyMessageRequest(
+        except Exception as e:
+            logger.exception("Handling Line Postback Event Error: %s", e)
+            error_message = ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[
                     TextMessage(text='發生其他問題'), 
@@ -127,7 +130,9 @@ def handle_postback_message(event):
             )
 
         finally:
-            line_bot_api.reply_message(reply_message)
+            if error_message:
+                print(reply_message)
+                line_bot_api.reply_message(error_message)
 
         return http.HttpResponse("OK")
 
